@@ -81,7 +81,7 @@ flowchart TD
     N --> B
 
     E -. "Invalid / Unsafe Plan" .-> C
-
+```
 Key modules:
 
 - `catalog.py` builds the semantic layer from the dictionary and observed fields/values.
