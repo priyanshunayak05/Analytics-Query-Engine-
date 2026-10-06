@@ -48,7 +48,35 @@ The response contract is:
 }
 ```
 
-## Architecture
+## Approach
+
+The engine follows a hybrid Text-to-Analytics approach:
+
+1. **Schema and semantic discovery**  
+   The system loads the data dictionary, dataset schema, business metrics, synonyms, and observed values.
+
+2. **Natural-language understanding**  
+   The planner interprets the user's question and identifies the requested metric, dimensions, filters, ranking, comparison, and time period.
+
+3. **GenAI planning**  
+   When configured, a GenAI model converts the natural-language request into a constrained `QueryPlan` rather than executable SQL.
+
+4. **Validation**  
+   The generated plan is validated against the known schema, supported metrics, dimensions, operators, limits, and analysis types.
+
+5. **Deterministic compilation and execution**  
+   The validated plan is converted into parameterized SQLite SQL and executed against the dataset.
+
+6. **Result validation and confidence**  
+   The engine checks execution and result quality and produces a confidence score between 0 and 1.
+
+7. **Explanation**  
+   The response explains what the system understood, how the query was executed, and any assumptions or limitations.
+
+8. **Feedback loop**  
+   Accepted corrections from the feedback log are reused as exact corrections and few-shot examples for future queries.
+
+This separation keeps GenAI responsible for semantic interpretation while keeping analytical execution deterministic, testable, and safe.
 
 ## 🏗️ System Architecture
 
