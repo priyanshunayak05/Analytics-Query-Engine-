@@ -1,0 +1,10 @@
+[
+  {"query": "Total sales in India for March"},
+  {"query": "Top 2 cities by profit"},
+  {"query": "Average order value by region"},
+  {"query": "Which region missed its target in Feb?"},
+  {"query": "Sales contribution % by category"},
+  {"query": "Top product in each region"},
+  {"query": "YoY growth in revenue"},
+  {"query": "Revenue of top 3 customers per region"}
+]

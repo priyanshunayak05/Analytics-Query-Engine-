@@ -1,0 +1,167 @@
+[
+  {
+    "query": "Total sales in India for March",
+    "generated_logic": "SELECT SUM(revenue) AS revenue FROM sales WHERE \"country\" = ? AND \"order_month\" = ?\n-- parameters: [\"India\", \"2024-03\"]",
+    "result": [
+      {
+        "revenue": 108.0
+      }
+    ],
+    "confidence_score": 0.85,
+    "explanation": "Understood as aggregate analysis of revenue, filtered to country = India, order_month = 2024-03. Generated a validated, parameterized SQLite query to aggregate revenue. The deterministic fallback planner supplied the semantic plan; configure GenAI for broader language coverage. Assumptions: Interpreted month as 2024-03, using the latest data year."
+  },
+  {
+    "query": "Top 2 cities by profit",
+    "generated_logic": "SELECT \"city\", SUM(profit) AS profit FROM sales GROUP BY \"city\" ORDER BY profit DESC, \"city\" ASC LIMIT ?\n-- parameters: [2]",
+    "result": [
+      {
+        "city": "New York",
+        "profit": 200.0
+      },
+      {
+        "city": "San Francisco",
+        "profit": 180.0
+      }
+    ],
+    "confidence_score": 0.86,
+    "explanation": "Understood as rank analysis of profit by city. Generated a validated, parameterized SQLite query to aggregate profit by city. The deterministic fallback planner supplied the semantic plan; configure GenAI for broader language coverage."
+  },
+  {
+    "query": "Average order value by region",
+    "generated_logic": "SELECT \"region\", SUM(revenue) / NULLIF(COUNT(DISTINCT order_id), 0) AS avg_order_value FROM sales GROUP BY \"region\" ORDER BY \"region\" ASC",
+    "result": [
+      {
+        "region": "APAC",
+        "avg_order_value": 118.5
+      },
+      {
+        "region": "EMEA",
+        "avg_order_value": 799.3333
+      },
+      {
+        "region": "NA",
+        "avg_order_value": 1087.4667
+      }
+    ],
+    "confidence_score": 0.8,
+    "explanation": "Understood as aggregate analysis of avg_order_value by region. Generated a validated, parameterized SQLite query to aggregate avg_order_value by region. The deterministic fallback planner supplied the semantic plan; configure GenAI for broader language coverage."
+  },
+  {
+    "query": "Which region missed its target in Feb?",
+    "generated_logic": "WITH actual AS (\n  SELECT s.region, s.order_month AS month, SUM(s.revenue) AS actual_revenue\n  FROM sales s WHERE s.\"order_month\" = ?\n  GROUP BY s.region, s.order_month\n)\nSELECT t.region, t.month, ROUND(COALESCE(a.actual_revenue, 0), 4) AS actual_revenue,\n       ROUND(t.target_revenue, 4) AS target_revenue,\n       ROUND(COALESCE(a.actual_revenue, 0) - t.target_revenue, 4) AS variance,\n       ROUND(100.0 * (COALESCE(a.actual_revenue, 0) - t.target_revenue) / NULLIF(t.target_revenue, 0), 4) AS variance_pct\nFROM targets t\nLEFT JOIN actual a ON t.region = a.region AND t.month = a.month\nWHERE t.month = ? AND COALESCE(a.actual_revenue, 0) < t.target_revenue\nORDER BY t.region\n-- parameters: [\"2024-02\", \"2024-02\"]",
+    "result": [
+      {
+        "region": "APAC",
+        "month": "2024-02",
+        "actual_revenue": 75.0,
+        "target_revenue": 6000.0,
+        "variance": -5925.0,
+        "variance_pct": -98.75
+      },
+      {
+        "region": "EMEA",
+        "month": "2024-02",
+        "actual_revenue": 255.0,
+        "target_revenue": 7500.0,
+        "variance": -7245.0,
+        "variance_pct": -96.6
+      },
+      {
+        "region": "NA",
+        "month": "2024-02",
+        "actual_revenue": 1116.0,
+        "target_revenue": 9500.0,
+        "variance": -8384.0,
+        "variance_pct": -88.2526
+      }
+    ],
+    "confidence_score": 0.85,
+    "explanation": "Understood as target comparison analysis of revenue by region, filtered to order_month = 2024-02. Generated a validated, parameterized SQLite query to compare regional monthly revenue with the target table, including zero-sales targets. The deterministic fallback planner supplied the semantic plan; configure GenAI for broader language coverage. Assumptions: Interpreted month as 2024-02, using the latest data year."
+  },
+  {
+    "query": "Sales contribution % by category",
+    "generated_logic": "WITH grouped AS (\n  SELECT \"product_category\" AS dimension_value, SUM(revenue) AS metric_value\n  FROM sales\n  GROUP BY \"product_category\"\n)\nSELECT dimension_value AS \"product_category\", ROUND(metric_value, 4) AS revenue,\n       ROUND(100.0 * metric_value / NULLIF(SUM(metric_value) OVER (), 0), 4) AS contribution_pct\nFROM grouped\nORDER BY contribution_pct DESC, dimension_value ASC",
+    "result": [
+      {
+        "product_category": "Technology",
+        "revenue": 5402.0,
+        "contribution_pct": 88.0608
+      },
+      {
+        "product_category": "Furniture",
+        "revenue": 579.0,
+        "contribution_pct": 9.4386
+      },
+      {
+        "product_category": "Office Supplies",
+        "revenue": 153.4,
+        "contribution_pct": 2.5007
+      }
+    ],
+    "confidence_score": 0.88,
+    "explanation": "Understood as contribution analysis of revenue by product_category. Generated a validated, parameterized SQLite query to compute each product_category's percentage contribution to total revenue. The deterministic fallback planner supplied the semantic plan; configure GenAI for broader language coverage."
+  },
+  {
+    "query": "Top product in each region",
+    "generated_logic": "WITH grouped AS (\n  SELECT \"region\", \"product_name\", SUM(revenue) AS metric_value\n  FROM sales\n  GROUP BY \"region\", \"product_name\"\n), ranked AS (\n  SELECT *, DENSE_RANK() OVER (\n    PARTITION BY \"region\" ORDER BY metric_value DESC, \"product_name\" ASC\n  ) AS rank\n  FROM grouped\n)\nSELECT \"region\", \"product_name\", ROUND(metric_value, 4) AS revenue, rank\nFROM ranked\nWHERE rank <= ?\nORDER BY \"region\", rank\n-- parameters: [1]",
+    "result": [
+      {
+        "region": "APAC",
+        "product_name": "Ergo Chair",
+        "revenue": 324.0,
+        "rank": 1
+      },
+      {
+        "region": "EMEA",
+        "product_name": "Samsung Galaxy",
+        "revenue": 1288.0,
+        "rank": 1
+      },
+      {
+        "region": "NA",
+        "product_name": "Dell XPS",
+        "revenue": 2068.0,
+        "rank": 1
+      }
+    ],
+    "confidence_score": 0.78,
+    "explanation": "Understood as top n per group analysis of revenue by region. Generated a validated, parameterized SQLite query to rank product_name by revenue within each region. The deterministic fallback planner supplied the semantic plan; configure GenAI for broader language coverage."
+  },
+  {
+    "query": "YoY growth in revenue",
+    "generated_logic": "WITH annual AS (\n  SELECT order_year, SUM(revenue) AS metric_value\n  FROM sales\n  GROUP BY order_year\n), compared AS (\n  SELECT order_year, metric_value,\n         LAG(metric_value) OVER (ORDER BY order_year) AS previous_year_value\n  FROM annual\n)\nSELECT order_year, ROUND(metric_value, 4) AS revenue,\n       ROUND(previous_year_value, 4) AS previous_year_revenue,\n       ROUND(100.0 * (metric_value - previous_year_value) / NULLIF(previous_year_value, 0), 4) AS yoy_growth_pct\nFROM compared\nORDER BY order_year",
+    "result": [
+      {
+        "order_year": "2024",
+        "revenue": 6134.4,
+        "previous_year_revenue": null,
+        "yoy_growth_pct": null
+      }
+    ],
+    "confidence_score": 0.7,
+    "explanation": "Understood as yoy analysis of revenue by order_year. Generated a validated, parameterized SQLite query to aggregate revenue by year and compare with the prior year using lag. The deterministic fallback planner supplied the semantic plan; configure GenAI for broader language coverage. A growth rate cannot be calculated because the filtered data contains no prior-year comparison."
+  },
+  {
+    "query": "Revenue of top 3 customers per region",
+    "generated_logic": "WITH entity_metric AS (\n  SELECT \"region\", \"customer_id\", SUM(revenue) AS metric_value\n  FROM sales\n  GROUP BY \"region\", \"customer_id\"\n), ranked AS (\n  SELECT *, ROW_NUMBER() OVER (\n    PARTITION BY \"region\" ORDER BY metric_value DESC, \"customer_id\" ASC\n  ) AS rank\n  FROM entity_metric\n), top_entities AS (\n  SELECT * FROM ranked WHERE rank <= ?\n)\nSELECT \"region\", ROUND(SUM(metric_value), 4) AS revenue,\n       COUNT(*) AS entities_included\nFROM top_entities\nGROUP BY \"region\"\nORDER BY \"region\"\n\n-- parameters: [3]",
+    "result": [
+      {
+        "region": "APAC",
+        "revenue": 474.0,
+        "entities_included": 3
+      },
+      {
+        "region": "EMEA",
+        "revenue": 2398.0,
+        "entities_included": 3
+      },
+      {
+        "region": "NA",
+        "revenue": 3262.4,
+        "entities_included": 3
+      }
+    ],
+    "confidence_score": 0.86,
+    "explanation": "Understood as nested top aggregate analysis of revenue by region. Generated a validated, parameterized SQLite query to rank customer_id within region, keep top 3, then aggregate revenue. The deterministic fallback planner supplied the semantic plan; configure GenAI for broader language coverage."
+  }
+]

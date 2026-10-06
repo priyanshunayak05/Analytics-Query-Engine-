@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "intelligent-analytics-query-engine"
+version = "1.0.0"
+description = "Hybrid GenAI analytics query planner with safe SQL execution"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+analytics-query = "analytics_engine.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+
