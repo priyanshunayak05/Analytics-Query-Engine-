@@ -95,6 +95,7 @@ flowchart TD
     N --> B
 
     E -. "Invalid / Unsafe Plan" .-> C
+```
 
 Key modules:
 
