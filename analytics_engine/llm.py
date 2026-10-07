@@ -1,14 +1,11 @@
-"""Provider-neutral GenAI planner using a user-supplied chat-completions URL."""
-
-from __future__ import annotations
-
+# This file handles the communication with the GenAI model
 import json
 import urllib.request
 from typing import Any
 
 from .catalog import SemanticCatalog
 
-
+# The prompt telling the AI what to do
 SYSTEM_PROMPT = """You are the semantic planning layer of an analytics engine.
 Translate the user's question into ONE JSON query plan. Never emit SQL or prose.
 Use only catalog metrics, dimensions, known values, and these analysis_type values:
@@ -38,7 +35,7 @@ nested_top_aggregate. Set a calibrated confidence from 0 to 1 and list assumptio
 
 
 class LLMPlanner:
-    def __init__(self, url: str, model: str, api_key: str | None = None, timeout: int = 45):
+    def __init__(self, url: str, model: str, api_key=None, timeout: int = 45):
         self.url = url
         self.model = model
         self.api_key = api_key
@@ -50,28 +47,41 @@ class LLMPlanner:
         catalog: SemanticCatalog,
         feedback_examples: list[dict[str, Any]],
     ) -> dict[str, Any]:
+        
+        # build the payload to send to the LLM
         user_payload = {
             "catalog": catalog.prompt_context(),
             "feedback_examples": feedback_examples,
             "query": query,
         }
+        
+        # format it for the openai compatible endpoint
         body = json.dumps({
             "model": self.model,
-            "temperature": 0,
+            "temperature": 0, # we want deterministic outputs
             "response_format": {"type": "json_object"},
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": json.dumps(user_payload)},
             ],
         }).encode("utf-8")
+        
         headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
+            
+        # make the api call using urllib so we don't need the requests library
         request = urllib.request.Request(self.url, data=body, headers=headers, method="POST")
         with urllib.request.urlopen(request, timeout=self.timeout) as response:
             payload = json.loads(response.read().decode("utf-8"))
+            
+        # extract the text content from the response
         content = payload["choices"][0]["message"]["content"]
+        
+        # sometimes the content is a list of strings, so join it just in case
         if isinstance(content, list):
             content = "".join(item.get("text", "") for item in content)
+            
+        # parse it back to a dictionary and return
         return json.loads(content)
 
